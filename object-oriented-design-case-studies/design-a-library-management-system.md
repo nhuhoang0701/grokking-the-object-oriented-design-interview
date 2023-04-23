@@ -154,26 +154,25 @@ class AccountStatus(Enum):
 
 
 class Address:
-    def __init__(self, street, city, state, zip_code, country):
-        self.__street_address = street
-        self.__city = city
-        self.__state = state
-        self.__zip_code = zip_code
-        self.__country = country
+    def __init__(self, street: str, city: str, state: str, zip_code: str, country: str):
+        self.__street_address: str = street
+        self.__city: str = city
+        self.__state: str = state
+        self.__zip_code: str = zip_code
+        self.__country: str = country
 
 
 class Person(ABC):
-    def __init__(self, name, address, email, phone):
-        self.__name = name
-        self.__address = address
-        self.__email = email
-        self.__phone = phone
+    def __init__(self, name: str, address: Address, email: str, phone: str):
+        self.__name: str = name
+        self.__address: Address = address
+        self.__email: str = email
+        self.__phone: str = phone
 
 
 class Constants:
-    def __init__(self):
-          self.MAX_BOOKS_ISSUED_TO_A_USER = 5
-          self.MAX_LENDING_DAYS = 10
+    MAX_BOOKS_ISSUED_TO_A_USER = 5
+    MAX_LENDING_DAYS = 10
 
 
 ```
@@ -195,53 +194,50 @@ from .models import *
 
 
 class Account(ABC):
-    def __init__(self, id, password, person, status=AccountStatus.Active):
+    def __init__(self, id: str, password: str, person: Person, status: AccountStatus=AccountStatus.Active):
         self.__id = id
-        self.__password = password
-        self.__status = status
-        self.__person = person
+        self.__password: str = password
+        self.__status: str = status
+        self.__person: Person = person
 
     def reset_password(self):
         None
 
 
 class Librarian(Account):
-    def __init__(self, id, password, person, status=AccountStatus.Active):
+    def __init__(self, id: str, password: str, person: Person, status: AccountStatus=AccountStatus.Active):
         super().__init__(id, password, person, status)
 
-    def add_book_item(self, book_item):
+    def add_book_item(self, book_item: BookItem) -> bool:
         None
 
-    def block_member(self, member):
+    def block_member(self, member: Member) -> bool:
         None
 
-    def un_block_member(self, member):
+    def un_block_member(self, member: Member) -> bool:
         None
 
 
 class Member(Account):
-    def __init__(self, id, password, person, status=AccountStatus.Active):
+    def __init__(self, id: str, password: str, person: Person, status: AccountStatus=AccountStatus.Active):
         super().__init__(id, password, person, status)
-        self.__date_of_membership = datetime.date.today()
-        self.__total_books_checkedout = 0
+        self.__date_of_membership: Date = datetime.date.today()
+        self.__total_books_checkedout: int = 0
 
-    def get_total_books_checkedout(self):
+    def get_total_books_checkedout(self) -> int:
         return self.__total_books_checkedout
 
-    def reserve_book_item(self, book_item):
+    def reserve_book_item(self, book_item: BookItem) -> bool:
         None
 
-    def increment_total_books_checkedout(self):
+    def increment_total_books_checkedout(self) -> None:
         None
 
-    def renew_book_item(self, book_item):
-        None
-
-    def checkout_book_item(self, book_item):
+    def checkout_book_item(self, book_item: BookItem) -> bool:
         if self.get_total_books_checked_out() >= Constants.MAX_BOOKS_ISSUED_TO_A_USER:
             print("The user has already checked-out maximum number of books")
             return False
-        book_reservation = BookReservation.fetch_reservation_details(book_item.get_barcode())
+        book_reservation: BookReservation = BookReservation.fetch_reservation_details(book_item.get_barcode())
         if book_reservation != None and book_reservation.get_member_id() != self.get_id():
             # book item has a pending reservation from another user
             print("self book is reserved by another member")
@@ -256,29 +252,28 @@ class Member(Account):
         self.increment_total_books_checkedout()
         return True
 
-    def check_for_fine(self, book_item_barcode):
-        book_lending = BookLending.fetch_lending_details(book_item_barcode)
-        due_date = book_lending.get_due_date()
-        today = datetime.date.today()
+    def check_for_fine(self, book_item_barcode: str) -> None:
+        book_lending: BookLending = BookLending.fetch_lending_details(book_item_barcode)
+        due_date: Date = book_lending.get_due_date()
+        today: Date = datetime.date.today()
         # check if the book has been returned within the due date
         if today > due_date:
             diff = today - due_date
             diff_days = diff.days
             Fine.collect_fine(self.get_member_id(), diff_days)
 
-    def return_book_item(self, book_item):
+    def return_book_item(self, book_item: BookItem) -> None:
         self.check_for_fine(book_item.get_barcode())
-        book_reservation = BookReservation.fetch_reservation_details(book_item.get_barcode())
+        book_reservation: BookReservation = BookReservation.fetch_reservation_details(book_item.get_barcode())
         if book_reservation != None:
             # book item has a pending reservation
             book_item.update_book_item_status(BookStatus.RESERVED)
             book_reservation.send_book_available_notification()
             book_item.update_book_item_status(BookStatus.AVAILABLE)
 
-    def renew_book_item(self, book_item):
+    def renew_book_item(self, book_item: BookItem) -> bool:
         self.check_for_fine(book_item.get_barcode())
-        book_reservation = BookReservation.fetch_reservation_details(
-        book_item.get_barcode())
+        book_reservation: BookReservation = BookReservation.fetch_reservation_details(book_item.get_barcode())
         # check if self book item has a pending reservation from another member
         if book_reservation != None and book_reservation.get_member_id() != self.get_member_id():
             print("self book is reserved by another member")
@@ -302,38 +297,42 @@ class Member(Account):
 **Code Snippet:**
 ```python
 class BookReservation:
-    def __init__(self, creation_date, status, book_item_barcode, member_id):
-        self.__creation_date = creation_date
-        self.__status = status
-        self.__book_item_barcode = book_item_barcode
-        self.__member_id = member_id
-
-    def fetch_reservation_details(self, barcode):
+    def __init__(self, creation_date: Date, status: ReservationStatus, book_item_barcode: str, member_id: str):
+        self.__creation_date: Date = creation_date
+        self.__status: ReservationStatus = status
+        self.__book_item_barcode: str = book_item_barcode
+        self.__member_id: str = member_id
+    
+    @staticmethod
+    def fetch_reservation_details(barcode: str) -> BookReservation:
         None
 
 
 class BookLending:
-    def __init__(self, creation_date, due_date, book_item_barcode, member_id):
-        self.__creation_date = creation_date
-        self.__due_date = due_date
-        self.__return_date = None
-        self.__book_item_barcode = book_item_barcode
-        self.__member_id = member_id
-
-    def lend_book(self, barcode, member_id):
+    def __init__(self, creation_date: Date, due_date: Date, book_item_barcode: str, member_id: str):
+        self.__creation_date: Date = creation_date
+        self.__due_date: Date = due_date
+        self.__return_date: Date = None
+        self.__book_item_barcode: str = book_item_barcode
+        self.__member_id: str = member_id
+    
+    @staticmethod
+    def lend_book(barcode, member_id) -> None:
         None
 
-    def fetch_lending_details(self, barcode):
+    @staticmethod
+    def fetch_lending_details(barcode: str) -> BookLending:
         None
 
 
 class Fine:
-    def __init__(self, creation_date, book_item_barcode, member_id):
-        self.__creation_date = creation_date
-        self.__book_item_barcode = book_item_barcode
-        self.__member_id = member_id
+    def __init__(self, creation_date: Date, book_item_barcode: str, member_id: str):
+        self.__creation_date: Date = creation_date
+        self.__book_item_barcode: str = book_item_barcode
+        self.__member_id: str = member_id
 
-    def collect_fine(self, member_id, days):
+    @staticmethod
+    def collect_fine(member_id, days: int) -> None:
         None
 
 
@@ -348,31 +347,31 @@ from .constants import *
 
 
 class Book(ABC):
-    def __init__(self, ISBN, title, subject, publisher, language, number_of_pages):
-        self.__ISBN = ISBN
-        self.__title = title
-        self.__subject = subject
-        self.__publisher = publisher
-        self.__language = language
-        self.__number_of_pages = number_of_pages
-        self.__authors = []
+    def __init__(self, ISBN: str, title: str, subject: str, publisher: str, language: str, number_of_pages: int):
+        self.__ISBN: str = ISBN
+        self.__title: str = title
+        self.__subject: str = subject
+        self.__publisher: str = publisher
+        self.__language: str = language
+        self.__number_of_pages: int = number_of_pages
+        self.__authors: List[Author] = []
 
 
 class BookItem(Book):
-    def __init__(self, barcode, is_reference_only, borrowed, due_date, price, book_format, status,
-                 date_of_purchase, publication_date, placed_at):
-        self.__barcode = barcode
-        self.__is_reference_only = is_reference_only
-        self.__borrowed = borrowed
-        self.__due_date = due_date
-        self.__price = price
-        self.__format = book_format
-        self.__status = status
-        self.__date_of_purchase = date_of_purchase
-        self.__publication_date = publication_date
-        self.__placed_at = placed_at
+    def __init__(self, barcode: str, is_reference_only: bool, borrowed: Date, due_date: Date, price: double,
+                book_format: BookFormat, status: BookStatus, date_of_purchase: Date, publication_date: Date, placed_at: Rack):
+        self.__barcode: str = barcode
+        self.__is_reference_only: bool = is_reference_only
+        self.__borrowed: Date = borrowed
+        self.__due_date: Date = due_date
+        self.__price: double = price
+        self.__format: BookFormat = book_format
+        self.__status: BookStatus = status
+        self.__date_of_purchase: Date = date_of_purchase
+        self.__publication_date: Date = publication_date
+        self.__placed_at: Rack = placed_at
 
-    def checkout(self, member_id):
+    def checkout(self, member_id: str) -> bool:
         if self.get_is_reference_only():
             print("self book is Reference only and can't be issued")
             return False
@@ -383,9 +382,9 @@ class BookItem(Book):
 
 
 class Rack:
-    def __init__(self, number, location_identifier):
-        self.__number = number
-        self.__location_identifier = location_identifier
+    def __init__(self, number: int, location_identifier: str):
+        self.__number: int = number
+        self.__location_identifier: str = location_identifier
 
 
 ```
@@ -398,31 +397,31 @@ from abc import ABC
 
 
 class Search(ABC):
-    def search_by_title(self, title):
+    def search_by_title(self, title: str) -> List[Book]:
         None
 
-    def search_by_author(self, author):
+    def search_by_author(self, author: str) -> List[Book]:
         None
 
-    def search_by_subject(self, subject):
+    def search_by_subject(self, subject: str) -> List[Book]:
         None
 
-    def search_by_pub_date(self, publish_date):
+    def search_by_pub_date(self, publish_date: Date) -> List[Book]:
         None
 
 
 class Catalog(Search):
     def __init__(self):
-        self.__book_titles = {}
-        self.__book_authors = {}
-        self.__book_subjects = {}
-        self.__book_publication_dates = {}
+        self.__book_titles: dict[str, List[Book]] = {}
+        self.__book_authors: dict[str, List[Book]] = {}
+        self.__book_subjects: dict[str, List[Book]] = {}
+        self.__book_publication_dates: dict[Date, List[Book]] = {}
 
-    def search_by_title(self, query):
+    def search_by_title(self, query: str) -> List[Book]:
         # return all books containing the string query in their title.
         return self.__book_titles.get(query)
 
-    def search_by_author(self, query):
+    def search_by_author(self, query: str) -> List[Book]:
         # return all books containing the string query in their author's name.
         return self.__book_authors.get(query)
 
