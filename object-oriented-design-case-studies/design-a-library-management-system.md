@@ -199,7 +199,10 @@ class Account(ABC):
         self.__password: str = password
         self.__status: str = status
         self.__person: Person = person
-
+    
+    def get_status(self) -> AccountStatus:
+        reeturn self.__status
+    
     def reset_password(self):
         None
 
@@ -212,18 +215,33 @@ class Librarian(Account):
         None
 
     def block_member(self, member: Member) -> bool:
-        None
+        if member.get_status() != AccountStatus.Active:
+            print("Account is already blocked!")
+            return False
+            
+        member._set_status(AccountStatus.Blocked)
+        return True
 
     def un_block_member(self, member: Member) -> bool:
-        None
-
+        if member.get_status() != AccountStatus.Blocked:
+            print("Account is not blocked!")
+            return False
+            
+        member._set_status(AccountStatus.Active)
+        return True
 
 class Member(Account):
     def __init__(self, id: str, password: str, person: Person, status: AccountStatus=AccountStatus.Active):
         super().__init__(id, password, person, status)
         self.__date_of_membership: Date = datetime.date.today()
         self.__total_books_checkedout: int = 0
-
+    
+    def _set_status(self, status: AccountStatus) -> None:
+        self.__status = status
+    
+    def close_account(self) -> None:
+        self._set_status(AccountStatus.Closed)
+    
     def get_total_books_checkedout(self) -> int:
         return self.__total_books_checkedout
 
